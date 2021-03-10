@@ -3,9 +3,7 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -13,10 +11,14 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+
+	"github.com/andydotxyz/traincon/rocrail"
 )
 
-func connect() net.Conn {
-	conn, err := net.Dial("tcp", "localhost:8051")
+var conn *rocrail.Connection
+
+func connect() *rocrail.Connection {
+	conn, err := rocrail.Connect("localhost",8051)
 	if err != nil {
 		log.Println("Failed to connect to RocRail")
 		return nil
@@ -25,48 +27,42 @@ func connect() net.Conn {
 	return conn
 }
 
-func send(conn net.Conn, cmd, args string) {
-	str := "<xmlh><xml size=\"%d\" name=\"%s\"/></xmlh>%s"
-	_, err := fmt.Fprintf(conn, str, len(args), cmd, args)
-
-	if err != nil {
-		log.Println("Failed to send, retrying", err)
-		connect()
-		_, _ = fmt.Fprintf(conn, str, len(args), cmd, args)
+func reconnectOnErr(err error) {
+	if err == nil {
+		return
 	}
+
+	log.Println("Failed to send, retrying")
+	conn = connect()
 }
 
 func main() {
 	a := app.New()
 	a.SetIcon(resourceIconPng)
 	w := a.NewWindow("Train Con")
-	conn := connect()
-	fwd := true
+	conn = connect()
+	loco := conn.Loco("0003")
 
 	throttle := widget.NewSlider(0, 100)
 	throttle.OnChanged = func(f float64) {
-		cmd := fmt.Sprintf("<lc id=\"0003\" V=\"%d\" dir=\"%t\" cmd=\"velocity\" />",
-			int(f), fwd)
-		send(conn, "lc", cmd)
+		reconnectOnErr(loco.SetVelocity(int(f)))
 	}
 	throttle.Orientation = widget.Vertical
 
-	loco := canvas.NewText("0003", theme.ErrorColor())
-	loco.TextStyle.Monospace = true
-	loco.TextSize = 32
-	loco.Alignment = fyne.TextAlignCenter
+	id := canvas.NewText("0003", theme.ErrorColor())
+	id.TextStyle.Monospace = true
+	id.TextSize = 32
+	id.Alignment = fyne.TextAlignCenter
 
 	w.SetContent(container.NewBorder(nil, nil, nil, throttle,
 		container.NewGridWithRows(3,
-			loco,
+			id,
 			container.NewGridWithColumns(2,
 				widget.NewButton("Rev", func() {
-					fwd = false
-					send(conn, "lc", "<lc id=\"0003\" dir=\"false\" cmd=\"velocity\" />")
+					reconnectOnErr(loco.SetDirection(rocrail.Reverse))
 				}),
 				widget.NewButton("Fwd", func() {
-					fwd = true
-					send(conn, "lc", "<lc id=\"0003\" dir=\"true\" cmd=\"velocity\" />")
+					reconnectOnErr(loco.SetDirection(rocrail.Forward))
 				}),
 			),
 			widget.NewButton("Break", func() {
