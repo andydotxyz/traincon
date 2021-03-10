@@ -1,9 +1,6 @@
 package rocrail
 
-import (
-	"fmt"
-	"log"
-)
+import "fmt"
 
 // Direction marks a forward or reverse locomotive direction.
 type Direction bool
@@ -44,7 +41,6 @@ func (l *Loco) SetVelocity(val int) error {
 }
 
 func (l *Loco) sendVelocity() error {
-	log.Println("Thing", l.velocity, l.dir)
 	xml := fmt.Sprintf("<lc id=\"%s\" V=\"%d\" dir=\"%t\" cmd=\"velocity\" />", l.id, l.velocity, l.dir)
 	return l.conn.SendXML("lc", xml)
 }
