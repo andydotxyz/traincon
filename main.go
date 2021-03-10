@@ -3,12 +3,13 @@
 package main
 
 import (
-	"log"
+	"strconv"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
@@ -16,15 +17,31 @@ import (
 )
 
 var conn *rocrail.Connection
+var loco *rocrail.Loco
+var win fyne.Window
 
-func connect() *rocrail.Connection {
-	conn, err := rocrail.Connect("localhost",8051)
-	if err != nil {
-		log.Println("Failed to connect to RocRail")
-		return nil
-	}
+func connect() {
+	d := dialog.NewProgressInfinite("Connecting",
+		"Connecting to rocrail...", win)
+	d.Show()
+	go func() {
+		host, port := userPref(fyne.CurrentApp())
+		if host == "" {
+			d.Hide()
+			updatePref(fyne.CurrentApp())
+			return
+		}
+		c, err := rocrail.Connect(host, port)
+		if err != nil {
+			d.Hide()
+			dialog.ShowError(err, win)
+			return
+		}
 
-	return conn
+		conn = c
+		loco = conn.Loco("0003")
+		d.Hide()
+	}()
 }
 
 func reconnectOnErr(err error) {
@@ -32,16 +49,43 @@ func reconnectOnErr(err error) {
 		return
 	}
 
-	log.Println("Failed to send, retrying")
-	conn = connect()
+	connect()
+}
+
+func updatePref(a fyne.App) {
+	host := widget.NewEntry()
+	host.SetPlaceHolder("localhost")
+	port := widget.NewEntry()
+	port.SetPlaceHolder("8051")
+
+	dialog.ShowForm("Connect", "Go", "Cancel",
+		[]*widget.FormItem{
+			widget.NewFormItem("Hostname", host),
+			widget.NewFormItem("Port", port),
+		}, func(ok bool) {
+			if !ok {
+				a.Preferences().SetString("server.host", "")
+				return
+			}
+
+			a.Preferences().SetString("server.host", host.Text)
+			p, _ := strconv.Atoi(port.Text)
+			a.Preferences().SetInt("server.port", p)
+
+			connect()
+		}, win)
+}
+
+func userPref(a fyne.App) (string, int) {
+	return a.Preferences().String("server.host"),
+		a.Preferences().Int("server.port")
 }
 
 func main() {
-	a := app.New()
+	a := app.NewWithID("xyz.andy.traincon")
 	a.SetIcon(resourceIconPng)
-	w := a.NewWindow("Train Con")
-	conn = connect()
-	loco := conn.Loco("0003")
+	win = a.NewWindow("Train Con")
+	connect()
 
 	throttle := widget.NewSlider(0, 100)
 	throttle.OnChanged = func(f float64) {
@@ -54,7 +98,7 @@ func main() {
 	id.TextSize = 32
 	id.Alignment = fyne.TextAlignCenter
 
-	w.SetContent(container.NewBorder(nil, nil, nil, throttle,
+	win.SetContent(container.NewBorder(nil, nil, nil, throttle,
 		container.NewGridWithRows(3,
 			id,
 			container.NewGridWithColumns(2,
@@ -69,5 +113,11 @@ func main() {
 				throttle.SetValue(0)
 			}),
 		)))
-	w.ShowAndRun()
+
+	win.SetMainMenu(fyne.NewMainMenu(
+		fyne.NewMenu("File",
+			fyne.NewMenuItem("Disconnect", func() {
+				updatePref(fyne.CurrentApp())
+			}))))
+	win.ShowAndRun()
 }
