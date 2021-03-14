@@ -46,7 +46,7 @@ func (c *Connection) SendXML(cmd, xml string) error {
 
 func (c *Connection) connect() error {
 	addr := fmt.Sprintf("%s:%d", c.host, c.port)
-	conn, err := net.DialTimeout("tcp", addr, time.Second * 10)
+	conn, err := net.DialTimeout("tcp", addr, time.Second*10)
 	if err == nil {
 		c.conn = conn
 	}

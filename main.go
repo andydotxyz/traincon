@@ -42,7 +42,9 @@ func connect() {
 		if err != nil {
 			d.Hide()
 			d := dialog.NewError(err, win)
-			d.SetOnClosed(func() {showLogin(fyne.CurrentApp())})
+			d.SetOnClosed(func() {
+				showLogin(fyne.CurrentApp())
+			})
 			d.Show()
 			return
 		}
@@ -91,7 +93,9 @@ func showLogin(a fyne.App) {
 			if !ok {
 				d := dialog.NewInformation("Connection",
 					"A connection is required\nplease try again.", win)
-				d.SetOnClosed(func() {showLogin(a)})
+				d.SetOnClosed(func() {
+					showLogin(a)
+				})
 				d.Show()
 				return
 			}
@@ -137,7 +141,7 @@ func main() {
 					}
 				}),
 				widget.NewButtonWithIcon("", theme.MoveUpIcon(), func() {
-					updateLoco(locoID+1)
+					updateLoco(locoID + 1)
 				}),
 				widget.NewButton("Rev", func() {
 					reconnectOnErr(loco.SetDirection(rocrail.Reverse))
