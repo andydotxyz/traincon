@@ -3,6 +3,7 @@ package rocrail
 import (
 	"fmt"
 	"net"
+	"time"
 )
 
 // Connection is the main type for communicating with a Rocrail server
@@ -30,6 +31,11 @@ func Connect(host string, port int) (*Connection, error) {
 	return ret, nil
 }
 
+func (c *Connection) Disconnect() {
+	_ = c.conn.Close()
+	c.conn = nil
+}
+
 // SendXML is the low-level call that allows XML based content to be sent to the server.
 // Normally this will not be used as the client formats messages, but it may be useful for custom actions.
 func (c *Connection) SendXML(cmd, xml string) error {
@@ -40,7 +46,7 @@ func (c *Connection) SendXML(cmd, xml string) error {
 
 func (c *Connection) connect() error {
 	addr := fmt.Sprintf("%s:%d", c.host, c.port)
-	conn, err := net.Dial("tcp", addr)
+	conn, err := net.DialTimeout("tcp", addr, time.Second * 10)
 	if err == nil {
 		c.conn = conn
 	}

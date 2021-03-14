@@ -35,13 +35,15 @@ func connect() {
 		host, port := userPref(fyne.CurrentApp())
 		if host == "" {
 			d.Hide()
-			updatePref(fyne.CurrentApp())
+			showLogin(fyne.CurrentApp())
 			return
 		}
 		c, err := rocrail.Connect(host, port)
 		if err != nil {
 			d.Hide()
-			dialog.ShowError(err, win)
+			d := dialog.NewError(err, win)
+			d.SetOnClosed(func() {showLogin(fyne.CurrentApp())})
+			d.Show()
 			return
 		}
 
@@ -68,11 +70,18 @@ func updateLoco(id int) {
 	throttle.SetValue(float64(loco.Velocity()))
 }
 
-func updatePref(a fyne.App) {
+func showLogin(a fyne.App) {
+	myHost, myPort := userPref(a)
 	host := widget.NewEntry()
 	host.SetPlaceHolder("localhost")
+	if myHost != "" {
+		host.SetText(myHost)
+	}
 	port := widget.NewEntry()
 	port.SetPlaceHolder("8051")
+	if myPort != 0 {
+		port.SetText(fmt.Sprintf("%d", myPort))
+	}
 
 	dialog.ShowForm("Connect", "Go", "Cancel",
 		[]*widget.FormItem{
@@ -80,7 +89,10 @@ func updatePref(a fyne.App) {
 			widget.NewFormItem("Port", port),
 		}, func(ok bool) {
 			if !ok {
-				a.Preferences().SetString("server.host", "")
+				d := dialog.NewInformation("Connection",
+					"A connection is required\nplease try again.", win)
+				d.SetOnClosed(func() {showLogin(a)})
+				d.Show()
 				return
 			}
 
@@ -142,7 +154,8 @@ func main() {
 	win.SetMainMenu(fyne.NewMainMenu(
 		fyne.NewMenu("File",
 			fyne.NewMenuItem("Disconnect", func() {
-				updatePref(fyne.CurrentApp())
+				conn.Disconnect()
+				showLogin(fyne.CurrentApp())
 			}))))
 	win.ShowAndRun()
 }
