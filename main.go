@@ -33,11 +33,6 @@ func connect() {
 	d.Show()
 	go func() {
 		host, port := userPref(fyne.CurrentApp())
-		if host == "" {
-			d.Hide()
-			showLogin(fyne.CurrentApp())
-			return
-		}
 		c, err := rocrail.Connect(host, port)
 		if err != nil {
 			d.Hide()
@@ -117,7 +112,23 @@ func main() {
 	a := app.NewWithID("xyz.andy.traincon")
 	a.SetIcon(resourceIconPng)
 	win = a.NewWindow("Train Con")
-	connect()
+	ver := a.Preferences().Int("app.version")
+	if ver < 1 {
+		d := dialog.NewInformation("Welcome",
+			"To use this app you need a\nrocrail server running.\n\nPlease enter the details\non the next screen", win)
+		d.SetOnClosed(func() {
+			showLogin(a)
+		})
+		d.Show()
+		a.Preferences().SetInt("app.version", 1)
+	} else {
+		host, _ := userPref(a)
+		if host == "" {
+			go showLogin(a)
+		} else {
+			connect()
+		}
+	}
 
 	throttle = widget.NewSlider(0, 100)
 	throttle.OnChanged = func(f float64) {
