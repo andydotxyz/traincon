@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 
 	"fyne.io/fyne/v2"
@@ -16,9 +17,15 @@ import (
 	"github.com/andydotxyz/traincon/rocrail"
 )
 
-var conn *rocrail.Connection
-var loco *rocrail.Loco
-var win fyne.Window
+var (
+	conn   *rocrail.Connection
+	loco   *rocrail.Loco
+	locoID = 3
+
+	idDisplay *canvas.Text
+	throttle  *widget.Slider
+	win       fyne.Window
+)
 
 func connect() {
 	d := dialog.NewProgressInfinite("Connecting",
@@ -39,7 +46,7 @@ func connect() {
 		}
 
 		conn = c
-		loco = conn.Loco("0003")
+		updateLoco(locoID)
 		d.Hide()
 	}()
 }
@@ -50,6 +57,15 @@ func reconnectOnErr(err error) {
 	}
 
 	connect()
+}
+
+func updateLoco(id int) {
+	locoID = id
+	str := fmt.Sprintf("%04d", locoID)
+	idDisplay.Text = str
+	idDisplay.Refresh()
+	loco = conn.Loco(str)
+	throttle.SetValue(float64(loco.Velocity()))
 }
 
 func updatePref(a fyne.App) {
@@ -87,21 +103,30 @@ func main() {
 	win = a.NewWindow("Train Con")
 	connect()
 
-	throttle := widget.NewSlider(0, 100)
+	throttle = widget.NewSlider(0, 100)
 	throttle.OnChanged = func(f float64) {
 		reconnectOnErr(loco.SetVelocity(int(f)))
 	}
 	throttle.Orientation = widget.Vertical
 
-	id := canvas.NewText("0003", theme.ErrorColor())
-	id.TextStyle.Monospace = true
-	id.TextSize = 32
-	id.Alignment = fyne.TextAlignCenter
+	idDisplay = canvas.NewText("0000", theme.ErrorColor())
+	idDisplay.TextStyle.Monospace = true
+	idDisplay.TextSize = 32
+	idDisplay.Alignment = fyne.TextAlignCenter
+	updateLoco(3)
 
 	win.SetContent(container.NewBorder(nil, nil, nil, throttle,
 		container.NewGridWithRows(3,
-			id,
+			idDisplay,
 			container.NewGridWithColumns(2,
+				widget.NewButtonWithIcon("", theme.MoveDownIcon(), func() {
+					if locoID > 1 {
+						updateLoco(locoID - 1)
+					}
+				}),
+				widget.NewButtonWithIcon("", theme.MoveUpIcon(), func() {
+					updateLoco(locoID+1)
+				}),
 				widget.NewButton("Rev", func() {
 					reconnectOnErr(loco.SetDirection(rocrail.Reverse))
 				}),

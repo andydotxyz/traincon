@@ -40,6 +40,10 @@ func (l *Loco) SetVelocity(val int) error {
 	return l.sendVelocity()
 }
 
+func (l *Loco) Velocity() int {
+	return l.velocity
+}
+
 func (l *Loco) sendVelocity() error {
 	xml := fmt.Sprintf("<lc id=\"%s\" V=\"%d\" dir=\"%t\" cmd=\"velocity\" />", l.id, l.velocity, l.dir)
 	return l.conn.SendXML("lc", xml)
