@@ -23,7 +23,7 @@ var (
 	locoID = 3
 
 	idDisplay *canvas.Text
-	throttle  *widget.Slider
+	speed     *widget.Slider
 	win       fyne.Window
 )
 
@@ -64,7 +64,7 @@ func updateLoco(id int) {
 	idDisplay.Text = str
 	idDisplay.Refresh()
 	loco = conn.Loco(str)
-	throttle.SetValue(float64(loco.Velocity()))
+	speed.SetValue(float64(loco.Velocity()))
 }
 
 func showLogin(a fyne.App) {
@@ -130,11 +130,11 @@ func main() {
 		}
 	}
 
-	throttle = widget.NewSlider(0, 100)
-	throttle.OnChanged = func(f float64) {
+	speed = widget.NewSlider(0, 100)
+	speed.OnChanged = func(f float64) {
 		reconnectOnErr(loco.SetVelocity(int(f)))
 	}
-	throttle.Orientation = widget.Vertical
+	speed.Orientation = widget.Vertical
 
 	idDisplay = canvas.NewText("0000", theme.ErrorColor())
 	idDisplay.TextStyle.Monospace = true
@@ -142,7 +142,7 @@ func main() {
 	idDisplay.Alignment = fyne.TextAlignCenter
 	updateLoco(3)
 
-	win.SetContent(container.NewBorder(nil, nil, nil, throttle,
+	win.SetContent(container.NewBorder(nil, nil, nil, speed,
 		container.NewGridWithRows(3,
 			idDisplay,
 			container.NewGridWithColumns(2,
@@ -162,7 +162,7 @@ func main() {
 				}),
 			),
 			widget.NewButton("Break", func() {
-				throttle.SetValue(0)
+				speed.SetValue(0)
 			}),
 		)))
 
