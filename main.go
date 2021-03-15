@@ -141,7 +141,7 @@ func main() {
 	idDisplay.Alignment = fyne.TextAlignCenter
 
 	win.SetContent(container.NewBorder(nil, nil, nil, speed,
-		container.NewGridWithRows(3,
+		container.NewGridWithColumns(1,
 			idDisplay,
 			container.NewGridWithColumns(2,
 				widget.NewButtonWithIcon("", theme.MoveDownIcon(), func() {
@@ -152,6 +152,8 @@ func main() {
 				widget.NewButtonWithIcon("", theme.MoveUpIcon(), func() {
 					updateLoco(locoID + 1)
 				}),
+			),
+			container.NewGridWithColumns(2,
 				widget.NewButton("Rev", func() {
 					reconnectOnErr(loco.SetDirection(rocrail.Reverse))
 				}),
