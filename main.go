@@ -23,7 +23,7 @@ var (
 	locoID = 3
 
 	idDisplay *canvas.Text
-	speed     *widget.Slider
+	speed     *throttle
 	win       fyne.Window
 )
 
@@ -130,11 +130,10 @@ func main() {
 		}
 	}
 
-	speed = widget.NewSlider(0, 100)
+	speed = newThrottle()
 	speed.OnChanged = func(f float64) {
 		reconnectOnErr(loco.SetVelocity(int(f)))
 	}
-	speed.Orientation = widget.Vertical
 
 	idDisplay = canvas.NewText("0000", theme.ErrorColor())
 	idDisplay.TextStyle.Monospace = true
