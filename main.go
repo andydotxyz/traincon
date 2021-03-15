@@ -80,7 +80,7 @@ func showLogin(a fyne.App) {
 		port.SetText(fmt.Sprintf("%d", myPort))
 	}
 
-	dialog.ShowForm("Connect", "Go", "Cancel",
+	dialog.ShowForm("Connect to rocrail", "Go", "Cancel",
 		[]*widget.FormItem{
 			widget.NewFormItem("Hostname", host),
 			widget.NewFormItem("Port", port),
