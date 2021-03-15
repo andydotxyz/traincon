@@ -135,11 +135,10 @@ func main() {
 		reconnectOnErr(loco.SetVelocity(int(f)))
 	}
 
-	idDisplay = canvas.NewText("0000", theme.ErrorColor())
+	idDisplay = canvas.NewText("loading", theme.ErrorColor())
 	idDisplay.TextStyle.Monospace = true
 	idDisplay.TextSize = 32
 	idDisplay.Alignment = fyne.TextAlignCenter
-	updateLoco(3)
 
 	win.SetContent(container.NewBorder(nil, nil, nil, speed,
 		container.NewGridWithRows(3,
