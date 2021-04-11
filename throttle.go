@@ -50,6 +50,10 @@ func (t *throttle) Dragged(ev *fyne.DragEvent) {
 	if val > 100 {
 		val = 100
 	}
+	if int(t.val) == int(val) {
+		return
+	}
+
 	t.val = float64(val)
 	t.Refresh()
 	if t.OnChanged != nil {
