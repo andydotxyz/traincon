@@ -8,23 +8,20 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/andydotxyz/traincon/rocrail"
 )
 
 var (
-	conn   *rocrail.Connection
-	loco   *rocrail.Loco
-	locoID = 3
+	conn *rocrail.Connection
+	cons []*con
 
-	idDisplay *canvas.Text
-	speed     *throttle
-	win       fyne.Window
+	grid *fyne.Container
+	win  fyne.Window
 )
 
 func connect() {
@@ -45,7 +42,9 @@ func connect() {
 		}
 
 		conn = c
-		updateLoco(locoID)
+		for _, ctrl := range cons {
+			ctrl.updateLoco(ctrl.locoID)
+		}
 		d.Hide()
 	}()
 }
@@ -56,15 +55,6 @@ func reconnectOnErr(err error) {
 	}
 
 	connect()
-}
-
-func updateLoco(id int) {
-	locoID = id
-	str := fmt.Sprintf("%04d", locoID)
-	idDisplay.Text = str
-	idDisplay.Refresh()
-	loco = conn.Loco(str)
-	speed.SetValue(float64(loco.Velocity()))
 }
 
 func showLogin(a fyne.App) {
@@ -130,47 +120,24 @@ func main() {
 		}
 	}
 
-	speed = newThrottle()
-	speed.OnChanged = func(f float64) {
-		reconnectOnErr(loco.SetVelocity(int(f)))
-	}
-
-	idDisplay = canvas.NewText("loading", theme.ErrorColor())
-	idDisplay.TextStyle.Monospace = true
-	idDisplay.TextSize = 32
-	idDisplay.Alignment = fyne.TextAlignCenter
-
-	win.SetContent(container.NewBorder(nil, nil, nil, speed,
-		container.NewGridWithColumns(1,
-			idDisplay,
-			container.NewGridWithColumns(2,
-				widget.NewButtonWithIcon("", theme.MoveDownIcon(), func() {
-					if locoID > 1 {
-						updateLoco(locoID - 1)
-					}
-				}),
-				widget.NewButtonWithIcon("", theme.MoveUpIcon(), func() {
-					updateLoco(locoID + 1)
-				}),
-			),
-			container.NewGridWithColumns(2,
-				widget.NewButton("Rev", func() {
-					reconnectOnErr(loco.SetDirection(rocrail.Reverse))
-				}),
-				widget.NewButton("Fwd", func() {
-					reconnectOnErr(loco.SetDirection(rocrail.Forward))
-				}),
-			),
-			widget.NewButton("Break", func() {
-				speed.SetValue(0)
-			}),
-		)))
+	c := newCon()
+	cons = []*con{c}
+	grid = container.NewGridWithColumns(1, c.makeUI())
+	win.SetContent(grid)
 
 	win.SetMainMenu(fyne.NewMainMenu(
 		fyne.NewMenu("File",
+			fyne.NewMenuItem("New", addControl),
+			fyne.NewMenuItemSeparator(),
 			fyne.NewMenuItem("Disconnect", func() {
 				conn.Disconnect()
 				showLogin(fyne.CurrentApp())
 			}))))
+	win.Canvas().AddShortcut(&desktop.CustomShortcut{
+		KeyName:  fyne.KeyN,
+		Modifier: desktop.ControlModifier,
+	}, func(_ fyne.Shortcut) {
+		addControl()
+	})
 	win.ShowAndRun()
 }
